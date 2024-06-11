@@ -19,8 +19,9 @@ export default class NewBill {
     e.preventDefault()
     const fileInput = this.document.querySelector(`input[data-testid="file"]`)
     const file = fileInput.files[0];
-    const filePath = e.target.value.split(/\\/g)
-    const fileName = filePath[filePath.length - 1]
+    /*const filePath = e.target.value.split(/\\/g)
+    const fileName = filePath[filePath.length - 1] */
+    const fileName = file.name
     if(!this.IsValidFileType(fileName)){
       alert("Seuls les fichiers jpg/jpeg et png sont autorisés.");
       fileInput.value = null
