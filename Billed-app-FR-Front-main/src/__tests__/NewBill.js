@@ -11,6 +11,8 @@ import { waitFor } from "@testing-library/dom";
 import mockStore from "../__mocks__/store"
 import { localStorageMock } from "../__mocks__/localStorage.js"
 
+jest.mock("../app/store", () => mockStore)
+
 describe("Given I am connected as an employee", () => {
   describe("When I am on NewBill Page", () => {
     describe("When I do not fill fields and I click on Send", () => {
