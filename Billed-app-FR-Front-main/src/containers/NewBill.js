@@ -65,19 +65,18 @@ export default class NewBill {
       status: 'pending'
     }
     this.updateBill(bill)
-    this.onNavigate(ROUTES_PATH['Bills'])
   }
 
   // not need to cover this function by tests
-  updateBill = (bill) => {
+   updateBill = (bill) => {
     if (this.store) {
       this.store
         .bills()
         .update({data: JSON.stringify(bill), selector: this.billId})
-        .then(() => {
+        .catch(error => console.error(error))
+        .finally(() => {
           this.onNavigate(ROUTES_PATH['Bills'])
         })
-        .catch(error => console.error(error))
     }
   }
 
