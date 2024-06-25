@@ -86,77 +86,115 @@ describe("Given I am connected as an employee", () => {
         const filename = screen.getByTestId("file");
         /*Listener is in NewBill constructor*/
         user.upload(filename, file)
-        await waitFor(() =>expect(filename.files[0].name).toBe('chucknorris.pdf'));
+        await waitFor(() => expect(filename.files[0].name).toBe('chucknorris.pdf'));
 
-        /*
-        const form = screen.getByTestId("form-new-bill");
-
-        const handleSubmit = jest.fn(e => newBill.handleSubmit(e));
-
-        form.addEventListener("submit", handleSubmit);
-        fireEvent.submit(form);
-        */
-        
         expect(global.alert).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId("form-new-bill")).toBeTruthy();
       });
     });
-    describe("When I fill form with correct data and send", () => {
-      test("Then it should send me to bills page", async() => {
-        document.body.innerHTML = NewBillUI();
+  });
 
-        const onNavigate = (pathname) => {
-          document.body.innerHTML = ROUTES({ pathname });
-        };
+  // test d'intégration POST
+  describe("When I send my newBill", () => {
+    beforeEach(async () => {
+      jest.spyOn(mockStore, "bills")
 
-        
-        Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-        window.localStorage.setItem('user', JSON.stringify({
-          type: 'Employee',
-          email: "a@a"
-        }))
+      document.body.innerHTML = NewBillUI();
 
-        const newBill = new NewBill({
-          document,
-          onNavigate,
-          store: mockStore,
-          localStorage: window.localStorage,
-        });
+      const onNavigate = (pathname) => {
+        document.body.innerHTML = ROUTES({ pathname });
+      };
 
-        const expensename = screen.getByTestId("expense-name");
-        fireEvent.change(expensename, { target: { value: "Kebab salade tomate oignon" } });
-        expect(expensename.value).toBe("Kebab salade tomate oignon");
+      Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+      window.localStorage.setItem('user', JSON.stringify({
+        type: 'Employee',
+        email: "a@a"
+      }))
 
-        const datepicker = screen.getByTestId("datepicker");
-        fireEvent.change(datepicker, { target: { value: '2020-05-12' } });
-        expect(datepicker.value).toBe("2020-05-12");
-
-        const amount = screen.getByTestId("amount");
-        fireEvent.change(amount, { target: { value: "205" } });
-        expect(amount.value).toBe("205");
-
-        const vat = screen.getByTestId("vat");
-        expect(vat.value).toBe("");
-
-        const pct = screen.getByTestId("pct");
-        fireEvent.change(pct, { target: { value: "12" } });
-        expect(pct.value).toBe("12");
-
-        const file = new File(["(⌐□_□)"], "chucknorris.jpg", { type: "image/jpeg" });
-
-        const filename = screen.getByTestId("file");
-        /*Listener is in NewBill constructor*/
-        user.upload(filename, file)
-        await waitFor(() =>expect(filename.files[0].name).toBe('chucknorris.jpg'));
-
-
-        const form = screen.getByTestId("form-new-bill");
-
-        /*Listener is in NewBill constructor*/
-        fireEvent.submit(form);
-
-        expect(screen.getByTestId("btn-new-bill")).toBeTruthy();
+      const newBill = new NewBill({
+        document,
+        onNavigate,
+        store: mockStore,
+        localStorage: window.localStorage,
       });
+
+      const expensename = screen.getByTestId("expense-name");
+      fireEvent.change(expensename, { target: { value: "Kebab salade tomate oignon" } });
+      expect(expensename.value).toBe("Kebab salade tomate oignon");
+
+      const datepicker = screen.getByTestId("datepicker");
+      fireEvent.change(datepicker, { target: { value: '2000-01-01' } });
+      expect(datepicker.value).toBe("2000-01-01");
+
+      const amount = screen.getByTestId("amount");
+      fireEvent.change(amount, { target: { value: "205" } });
+      expect(amount.value).toBe("205");
+
+      const vat = screen.getByTestId("vat");
+      expect(vat.value).toBe("");
+
+      const pct = screen.getByTestId("pct");
+      fireEvent.change(pct, { target: { value: "12" } });
+      expect(pct.value).toBe("12");
+
+      const file = new File(["(⌐□_□)"], "chucknorris.jpg", { type: "image/jpeg" });
+
+      const filename = screen.getByTestId("file");
+      /*Listener is in NewBill constructor*/
+      user.upload(filename, file)
+      await waitFor(() => expect(filename.files[0].name).toBe('chucknorris.jpg'));
+
+    })
+    test("Then it should redirect to Bills", async () => {
+      /*Listener is in NewBill constructor*/
+      const form = screen.getByTestId("form-new-bill");
+      fireEvent.submit(form);
+      await waitFor(() => screen.getByText("Mes notes de frais"))
+      await waitFor(() => expect(screen.getByTestId("btn-new-bill")).toBeTruthy());
     });
+
+    describe("When an error occurs on API", () => {
+      beforeAll(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => { });
+      });
+
+      afterAll(() => {
+        console.error.mockRestore();
+      });
+
+      afterEach(() => {
+        console.error.mockClear();
+      });
+      test("Posts bills from an API and fails with 404 message error", async () => {
+        mockStore.bills.mockImplementationOnce(() => {
+          return {
+            update: (bill) => {
+              return Promise.reject(new Error("Erreur 404"))
+            }
+          }
+        })
+        await new Promise(process.nextTick);
+        const form = screen.getByTestId("form-new-bill");
+        fireEvent.submit(form);
+        await waitFor(() => expect(screen.getByTestId("btn-new-bill")).toBeTruthy());
+        expect(console.error).toHaveBeenCalledWith(new Error("Erreur 404"));
+      })
+
+      test("fetches bills from an API and fails with 500 message error", async () => {
+
+        mockStore.bills.mockImplementationOnce(() => {
+          return {
+            update: (bill) => {
+              return Promise.reject(new Error("Erreur 500"))
+            }
+          }
+        })
+        await new Promise(process.nextTick);
+        const form = screen.getByTestId("form-new-bill");
+        fireEvent.submit(form);
+        await waitFor(() => expect(screen.getByTestId("btn-new-bill")).toBeTruthy());
+        expect(console.error).toHaveBeenCalledWith(new Error("Erreur 500"));
+      })
+    })
   })
 })
